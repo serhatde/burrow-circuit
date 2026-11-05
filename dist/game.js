@@ -7,12 +7,21 @@
   const SEEDS_PER_SECTOR = 5;
   const MAX_SECTOR = 3;
   const STORAGE_KEY = "burrow-circuit-records-v1";
+  const SQUEEKCHAIN_STATUS_URL = "https://api.squeekchain.com/v1/status";
+  const SQUEEKCHAIN_POLL_MS = 20000;
+  const SQUEEK_BLOCK_UNITS = 1000000000;
   const canvas = document.getElementById("arena");
   const ctx = canvas.getContext("2d");
   const overlay = document.getElementById("screen-overlay");
   const runHud = document.getElementById("run-hud");
   const announcer = document.getElementById("announcer");
   const toast = document.getElementById("toast");
+  const chainStatus = document.getElementById("chain-status");
+  const chainWheel = document.getElementById("chain-wheel");
+  const chainHeight = document.getElementById("chain-height");
+  const chainProgress = document.getElementById("chain-progress");
+  const chainProgressFill = document.getElementById("chain-progress-fill");
+  const chainExplainer = document.getElementById("chain-explainer");
   const keys = new Set();
   const today = localDateString();
   document.getElementById("today-date").textContent = formatDate(today);
@@ -22,7 +31,8 @@
     elapsed: 0, sectorElapsed: 0, lives: 3, collected: 0, map: null,
     crystals: [], enemies: [], exit: { x: 0, y: 0 }, worldTime: 0,
     player: { x: TILE * 1.5, y: TILE * 1.5, radius: 9, lastX: 1, lastY: 0, invulnerable: 0, dashTime: 0, dashCooldown: 0 },
-    muted: true, audio: null, toastTimer: 0, sharedSeed: readSharedSeed(), stats: readStats()
+    muted: true, audio: null, toastTimer: 0, sharedSeed: readSharedSeed(), stats: readStats(),
+    chain: { status: "loading", available: false, freshness: null, coreStatus: null, rpmMilli: null, blockHeight: null, blockProgress: null }
   };
 
   function localDateString() {
@@ -178,7 +188,7 @@
     document.getElementById("share-button").disabled = true;
     setRunLabel("READY WHEN YOU ARE", false);
     const shared = game.sharedSeed ? '<button class="secondary-button" id="start-shared">PLAY SHARED SEED · ' + escapeHtml(game.sharedSeed) + '</button>' : "";
-    overlay.innerHTML = '<div class="overlay-card"><div class="overlay-emblem" aria-hidden="true">✦</div><p class="overlay-kicker">THREE SECTORS · ONE RUN</p><h2>Ready to burrow?</h2><p>Collect the seeds, shake off the bots, and find your way to the gate.</p><div class="overlay-actions"><button class="primary-button" id="start-daily">PLAY TODAY’S MAZE</button><button class="secondary-button" id="start-free">FRESH RANDOM MAZE</button>' + shared + '</div><div class="overlay-note">WASD / ARROWS TO MOVE · SPACE TO DASH · P TO PAUSE</div></div>';
+    overlay.innerHTML = '<div class="overlay-card"><div class="overlay-emblem" aria-hidden="true">✦</div><p class="overlay-kicker">THREE SECTORS · ONE RUN</p><h2>Ready to burrow?</h2><p>Collect the seeds, shake off the bots, and find your way to the gate.</p><div class="overlay-actions"><button class="primary-button" id="start-daily">PLAY TODAY’S MAZE</button><button class="secondary-button" id="start-free">FRESH RANDOM MAZE</button>' + shared + '</div><div class="overlay-note">LIVE SQUEEKCHAIN PROGRESS POWERS SEEDS · SPACE TO DASH · P TO PAUSE</div></div>';
     overlay.hidden = false;
     document.getElementById("start-daily").addEventListener("click", () => startRun("daily", today));
     document.getElementById("start-free").addEventListener("click", () => startRun("free", randomSeed()));
@@ -191,9 +201,82 @@
     document.getElementById("state-indicator").classList.toggle("is-live", live);
   }
   function formatNumber(value) { return Number(value || 0).toLocaleString("en-US"); }
+  function formatDecimal(value) {
+    try { return BigInt(value).toLocaleString("en-US"); }
+    catch (_error) { return "Unknown"; }
+  }
   function formatTime(value) {
     const seconds = Math.max(0, Math.floor(value));
     return String(Math.floor(seconds / 60)).padStart(2, "0") + ":" + String(seconds % 60).padStart(2, "0");
+  }
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+  function chainCharge() {
+    if (!game.chain.available || !Number.isFinite(game.chain.blockProgress)) return 0;
+    return clamp(game.chain.blockProgress / SQUEEK_BLOCK_UNITS, 0, 1);
+  }
+  function chainBotMultiplier() {
+    if (!game.chain.available || game.chain.freshness !== "online" || game.chain.coreStatus !== "ACTIVE" || !Number.isFinite(game.chain.rpmMilli)) return 1;
+    return 1 + clamp(game.chain.rpmMilli / 60000, 0, 1) * .35;
+  }
+  function updateChainPanel() {
+    if (!chainStatus) return;
+    if (game.chain.status === "loading") chainStatus.textContent = "CONNECTING";
+    else if (!game.chain.available) chainStatus.textContent = "API UNAVAILABLE";
+    else if (game.chain.freshness === "online" && game.chain.coreStatus === "ACTIVE") chainStatus.textContent = "LIVE · WHEEL ON";
+    else if (game.chain.freshness === "online" && game.chain.coreStatus === "IDLE") chainStatus.textContent = "LIVE · WHEEL IDLE";
+    else if (game.chain.freshness === "stale") chainStatus.textContent = "WHEEL STALE";
+    else chainStatus.textContent = "BLOCK DATA LIVE";
+
+    if (!game.chain.available) {
+      chainWheel.textContent = "Unavailable";
+      chainHeight.textContent = "Unavailable";
+      chainProgress.textContent = "Unavailable";
+      chainProgressFill.style.width = "0%";
+      chainExplainer.textContent = "Squeekchain data is unavailable. The maze stays playable with its local rules.";
+      return;
+    }
+
+    chainWheel.textContent = game.chain.freshness !== "online" ? "Stale" : game.chain.coreStatus === "ACTIVE" && Number.isFinite(game.chain.rpmMilli) ? (game.chain.rpmMilli / 1000).toFixed(1) + " rpm" : game.chain.coreStatus === "IDLE" ? "Idle" : "Unknown";
+    chainHeight.textContent = game.chain.blockHeight !== null ? "#" + formatDecimal(game.chain.blockHeight) : "Unknown";
+    const progressPercent = chainCharge() * 100;
+    chainProgress.textContent = progressPercent.toFixed(1) + "%";
+    chainProgressFill.style.width = progressPercent.toFixed(2) + "%";
+    const seedBonus = Math.round(chainCharge() * 125);
+    const dashCooldown = 1.25 - chainCharge() * .4;
+    chainExplainer.textContent = "Live rules: +" + seedBonus + " seed points · dash " + dashCooldown.toFixed(1) + "s · bots ×" + chainBotMultiplier().toFixed(2);
+  }
+  async function refreshSqueekchain() {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 7000);
+    try {
+      const response = await fetch(SQUEEKCHAIN_STATUS_URL, { method: "GET", headers: { Accept: "application/json" }, cache: "no-store", signal: controller.signal });
+      if (!response.ok) throw new Error("Squeekchain API returned " + response.status);
+      const payload = await response.json();
+      if (!payload || payload.schemaVersion !== 1) throw new Error("Unsupported Squeekchain status schema");
+      const anchor = payload.builder && payload.builder.anchor;
+      if (!anchor || payload.builder.status === "unavailable") {
+        game.chain = { status: "unavailable", available: false, freshness: null, coreStatus: null, rpmMilli: null, blockHeight: null, blockProgress: null };
+      } else {
+        const height = String(anchor.blockHeight);
+        const progress = Number(anchor.blockProgress);
+        if (!/^\d+$/.test(height) || !Number.isFinite(progress)) throw new Error("Squeekchain anchor is incomplete");
+        const measurement = payload.measurement && typeof payload.measurement === "object" ? payload.measurement : null;
+        const rpm = measurement && typeof measurement.rpmMilli === "number" && Number.isFinite(measurement.rpmMilli) ? measurement.rpmMilli : null;
+        game.chain = {
+          status: "available", available: true,
+          freshness: measurement && typeof measurement.freshness === "string" ? measurement.freshness : "unknown",
+          coreStatus: measurement && typeof measurement.coreStatus === "string" ? measurement.coreStatus : "unknown",
+          rpmMilli: rpm,
+          blockHeight: height,
+          blockProgress: clamp(progress, 0, SQUEEK_BLOCK_UNITS)
+        };
+      }
+    } catch (_error) {
+      game.chain = { status: "unavailable", available: false, freshness: null, coreStatus: null, rpmMilli: null, blockHeight: null, blockProgress: null };
+    } finally {
+      window.clearTimeout(timeout);
+      updateChainPanel();
+    }
   }
   function updateHud() {
     runHud.hidden = game.state === "home";
@@ -310,7 +393,7 @@
     const v = movementVector();
     if (v.x || v.y) { game.player.lastX = v.x; game.player.lastY = v.y; }
     game.player.dashTime = .17;
-    game.player.dashCooldown = 1.25;
+    game.player.dashCooldown = 1.25 - chainCharge() * .4;
     playTone(235, .12, "triangle", .04);
   }
   function blockedAt(x, y, radius) {
@@ -355,7 +438,7 @@
       }
       const dx = enemy.targetX - enemy.x, dy = enemy.targetY - enemy.y;
       const length = Math.hypot(dx, dy);
-      const step = enemy.speed * (1 + game.collected * .045) * dt;
+      const step = enemy.speed * (1 + game.collected * .045) * chainBotMultiplier() * dt;
       if (length <= step || length < 1) { enemy.x = enemy.targetX; enemy.y = enemy.targetY; }
       else { enemy.x += dx / length * step; enemy.y += dy / length * step; }
       enemy.shell += dt * 3;
@@ -382,11 +465,12 @@
       if (Math.hypot(game.player.x - x, game.player.y - y) < 16) {
         crystal.collected = true;
         game.collected++;
-        game.score += 125;
+        const seedScore = 125 + Math.round(chainCharge() * 125);
+        game.score += seedScore;
         playTone(650 + game.collected * 70, .11, "sine", .045);
         updateHud();
         announce(game.collected + " of " + SEEDS_PER_SECTOR + " glowseeds collected.");
-        if (game.collected === SEEDS_PER_SECTOR) showToast("Exit charged · find the mint gate");
+        if (game.collected === SEEDS_PER_SECTOR) showToast("Exit charged · seed value " + seedScore + " · find the mint gate");
       }
     }
     if (game.collected < SEEDS_PER_SECTOR) return;
@@ -555,5 +639,8 @@
     window.requestAnimationFrame(frame);
   }
   showHome();
+  updateChainPanel();
+  refreshSqueekchain();
+  window.setInterval(refreshSqueekchain, SQUEEKCHAIN_POLL_MS);
   window.requestAnimationFrame(frame);
 })();

@@ -1,10 +1,10 @@
 # Burrow Circuit
 
-Burrow Circuit is an independent, browser-based maze-runner game made for the Squeekchain builder community. It is a standalone game: no wallet, account, transaction, server, or external game API is needed.
+Burrow Circuit is an independent, browser-based maze game that uses Squeekchain's public read-only API to make the live wheel and confirmed block progress affect each run. It requires no wallet, account, or transaction.
 
 ## Play
 
-Play online: [GitHub Pages](https://serhatde.github.io/burrow-circuit/) · [Codex Site](https://burrow-circuit.muddytick259.chatgpt.site).
+Play online: [GitHub Pages](https://serhatde.github.io/burrow-circuit/).
 
 Source: [serhatde/burrow-circuit](https://github.com/serhatde/burrow-circuit).
 
@@ -24,6 +24,8 @@ Choose the daily maze to play the same deterministic layout as other players tha
 - The game runs entirely in the browser and remains playable offline after its fonts are cached.
 - Scores stay on the player's device.
 - Sound is generated locally by the browser and starts muted.
+- Squeekchain's public `/v1/status` endpoint changes bot pressure, seed points, and dash cooldown from live wheel speed and confirmed block progress.
+- If the API is unavailable, the game clearly falls back to its local rules.
 - The project is not an official Squeekchain product.
 
 ## Run locally

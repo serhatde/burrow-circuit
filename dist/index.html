@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#071a1d">
-  <meta name="description" content="A fast daily maze-runner game. Collect the glowseeds, outsmart the burrow bots, and escape.">
+  <meta name="description" content="A Squeekchain-powered daily maze-runner. The live hamster wheel and confirmed block progress shape each run.">
   <meta property="og:title" content="Burrow Circuit">
-  <meta property="og:description" content="Three sectors. Five glowseeds. One clean escape. Play the daily maze.">
+  <meta property="og:description" content="Three sectors. Five glowseeds. Live Squeekchain data shapes the maze run. No wallet needed.">
   <title>Burrow Circuit — Daily Maze Run</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
@@ -21,7 +21,7 @@
         <span class="brand-copy"><strong>BURROW</strong><span>CIRCUIT</span></span>
       </a>
       <div class="topbar-right">
-        <span class="community-label"><span class="pulse-dot"></span> INDEPENDENT COMMUNITY GAME</span>
+        <span class="community-label"><span class="pulse-dot"></span> INDEPENDENT · SQUEEKCHAIN LIVE DATA</span>
         <button class="icon-button sound-button" id="sound-toggle" type="button" aria-pressed="false" aria-label="Turn sound on">
           <svg class="sound-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M16 9a5 5 0 0 1 0 6M18.5 6.5a8.5 8.5 0 0 1 0 11"/></svg>
           <svg class="sound-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="m17 9 5 6m0-6-5 6"/></svg><span>Sound off</span>
@@ -30,7 +30,7 @@
     </header>
     <main>
       <section class="intro-row" aria-labelledby="page-title">
-        <div><p class="eyebrow"><span>01</span> DAILY ARCADE</p><h1 id="page-title">Find the way <em>out.</em></h1><p class="intro-copy">A quick maze run for quick paws. Collect the glowseeds, dodge the burrow bots, and open the exit before the circuit cools.</p></div>
+        <div><p class="eyebrow"><span>01</span> SQUEEKCHAIN-POWERED ARCADE</p><h1 id="page-title">Find the way <em>out.</em></h1><p class="intro-copy">A quick maze run for quick paws. Squeektoshi’s live wheel sets the bot pressure; confirmed Squeek block progress powers your seeds and dash.</p></div>
         <div class="today-card"><span class="today-label">TODAY’S SEED</span><strong id="today-date">—</strong><span class="today-foot"><span class="seed-icon" aria-hidden="true">✦</span> Same maze for everyone today</span></div>
       </section>
       <section class="play-layout" aria-label="Burrow Circuit game">
@@ -65,10 +65,16 @@
             <div class="record-grid"><div><span class="record-label">BEST RUN</span><strong id="best-score">0</strong><small>points</small></div><div><span class="record-label">TODAY</span><strong id="daily-score">0</strong><small>points</small></div></div>
             <div class="record-foot"><span class="record-spark">✦</span><span id="record-note">Your scores stay in this browser.</span></div>
           </section>
+          <section class="panel chain-panel" aria-labelledby="chain-panel-title">
+            <div class="panel-heading"><span class="panel-kicker" id="chain-panel-title">SQUEEKCHAIN SIGNAL</span><span class="local-badge" id="chain-status">CONNECTING</span></div>
+            <div class="chain-reading"><div><span class="record-label">WHEEL</span><strong id="chain-wheel">—</strong></div><div><span class="record-label">SETTLED BLOCK</span><strong id="chain-height">—</strong></div></div>
+            <div class="chain-progress"><div class="chain-progress-heading"><span>Progress to next Squeek block</span><strong id="chain-progress">—</strong></div><div class="chain-progress-track"><span id="chain-progress-fill"></span></div></div>
+            <p class="chain-explainer" id="chain-explainer">Live wheel speed changes bot pressure. Confirmed block progress boosts seed points and shortens dash cooldown.</p>
+          </section>
           <section class="panel tip-panel"><div class="tip-icon" aria-hidden="true">↗</div><div><span class="panel-kicker">QUICK TIP</span><p>Save your dash for a tight corner. Bots move faster after you collect a seed.</p></div></section>
         </aside>
       </section>
-      <section class="bottom-info" id="about"><div><span class="bottom-mark">BC</span><div><strong>A little game for the burrow.</strong><p>Burrow Circuit is an independent, open-source community game. It never asks for a wallet, account, or transaction.</p></div></div><a href="README.md" class="readme-link">HOW IT WORKS <span aria-hidden="true">↗</span></a></section>
+      <section class="bottom-info" id="about"><div><span class="bottom-mark">BC</span><div><strong>A little game for the burrow.</strong><p>Burrow Circuit is an independent, open-source community game. It reads public Squeekchain data and never asks for a wallet or transaction.</p></div></div><div class="bottom-links"><a href="README.md" class="readme-link">HOW IT WORKS <span aria-hidden="true">↗</span></a><a href="https://github.com/serhatde/burrow-circuit" class="readme-link" target="_blank" rel="noopener noreferrer">SOURCE CODE <span aria-hidden="true">↗</span></a></div></section>
       <p class="fine-print">Built for fun by the community. Not an official Squeekchain product. Scores are stored on your device and are not sent to a server.</p>
     </main>
     <div id="announcer" class="sr-only" aria-live="assertive"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
