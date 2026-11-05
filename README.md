@@ -4,7 +4,7 @@ Burrow Circuit is an independent, browser-based maze-runner game made for the Sq
 
 ## Play
 
-Play online: [Burrow Circuit](https://burrow-circuit.muddytick259.chatgpt.site).
+Play online: [GitHub Pages](https://serhatde.github.io/burrow-circuit/) · [Codex Site](https://burrow-circuit.muddytick259.chatgpt.site).
 
 Source: [serhatde/burrow-circuit](https://github.com/serhatde/burrow-circuit).
 
