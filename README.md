@@ -19,6 +19,7 @@ Choose the daily maze to play the same deterministic layout as other players tha
 
 ## Project details
 
+- Squeekchain Genesis project verification: `squeekchain-project: e9e60b79-0002-4df1-8081-8ee34585fb91`
 - Daily mazes are generated deterministically from the local calendar date.
 - Free runs use a fresh random seed. Shared links recreate their maze.
 - The game runs entirely in the browser and remains playable offline after its fonts are cached.
